@@ -883,6 +883,30 @@ test("array without items", () => {
   expect(schema.parse([1, "string", true])).toEqual([1, "string", true]);
 });
 
+test("array without items respects minItems and maxItems", () => {
+  const schema = fromJSONSchema({
+    type: "array",
+    minItems: 2,
+    maxItems: 4,
+  });
+
+  // Valid payloads of mixed types within bounds
+  expect(schema.parse([1, 2])).toEqual([1, 2]);
+  expect(schema.parse([1, "two", true])).toEqual([1, "two", true]);
+  expect(schema.parse([1, 2, 3, 4])).toEqual([1, 2, 3, 4]);
+
+  // Violations
+  expect(() => schema.parse([])).toThrow();
+  expect(() => schema.parse([1])).toThrow();
+  expect(() => schema.parse([1, 2, 3, 4, 5])).toThrow();
+
+  // Roundtrip to JSON schema preserves minItems and maxItems
+  const jsonSchema = z.toJSONSchema(schema) as any;
+  expect(jsonSchema.type).toBe("array");
+  expect(jsonSchema.minItems).toBe(2);
+  expect(jsonSchema.maxItems).toBe(4);
+});
+
 test("mixed enum types", () => {
   const schema = fromJSONSchema({
     enum: ["string", 42, true, null],
